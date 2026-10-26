@@ -107,7 +107,12 @@ func build_tree() -> void:
 	box.add_child(title)
 
 	var area := Control.new()
-	area.custom_minimum_size = PAD * 2 + Vector2(2 * SPACING.x + NODE_SIZE.x, 2 * SPACING.y + NODE_SIZE.y)
+	var extent := Vector2.ZERO
+	for gene_id in Game.GENES:
+		var gp: Vector2 = Game.GENES[gene_id].pos
+		extent.x = maxf(extent.x, gp.x)
+		extent.y = maxf(extent.y, gp.y)
+	area.custom_minimum_size = PAD * 2 + extent * SPACING + NODE_SIZE
 	box.add_child(area)
 
 	lines = Control.new()

@@ -2,15 +2,22 @@
 
 [ext_resource type="Script" uid="uid://dhyvy1ocifdqn" path="res://main.gd" id="1_lquwl"]
 [ext_resource type="Script" uid="uid://bhkeda50qpv53" path="res://membrane.gd" id="2_h2yge"]
+[ext_resource type="Script" uid="uid://c1sn2thp6usa5" path="res://stockpile.gd" id="3_7mycd"]
 [ext_resource type="Script" uid="uid://bnnmefklvhfa6" path="res://traffic.gd" id="3_h2yge"]
 [ext_resource type="Script" uid="uid://dp2mr0g35fdgs" path="res://nucleus.gd" id="4_1bvp3"]
 [ext_resource type="Script" uid="uid://ba7dt5ipvxpcs" path="res://organelles.gd" id="4_lquwl"]
+[ext_resource type="Script" uid="uid://d2qc5hkttoadr" path="res://minimap.gd" id="7_272bh"]
 
 [node name="Main" type="Node2D" unique_id=956508114]
 script = ExtResource("1_lquwl")
 
 [node name="Membrane" type="Node2D" parent="." unique_id=619354524]
 script = ExtResource("2_h2yge")
+margin = 70.0
+margin_top = 150.0
+
+[node name="Stockpile" type="Node2D" parent="." unique_id=462273574]
+script = ExtResource("3_7mycd")
 
 [node name="Nucleus" type="Node2D" parent="." unique_id=1256955659]
 position = Vector2(576, 350)
@@ -22,3 +29,6 @@ script = ExtResource("4_lquwl")
 
 [node name="Traffic" type="Node2D" parent="." unique_id=1268995546]
 script = ExtResource("3_h2yge")
+
+[node name="Minimap" type="Node2D" parent="." unique_id=1729328031]
+script = ExtResource("7_272bh")

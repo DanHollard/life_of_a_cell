@@ -2,16 +2,23 @@ extends Node
 
 signal changed
 signal channels_changed
+signal converted
 
 const BASE_LEAK := 0.2      # molecules/sec of each type leaking through the plain membrane
 const PER_CHANNEL := 0.5    # molecules/sec added by each channel of that type
 const CONVERT_RATE := 0.5   # carbs/sec converted by each mitochondrion
 const ATP_PER_CARB := 3
 const CARB_RESERVE := 5     # mitochondria leave this many carbs for gene costs
+const BASE_ENGULF := 18.0   # click reach in pixels
+const ENZYME_RATE := 1.0    # glucose drops each synthase enzyme processes per second
+const QUEUE_MAX := 8        # drops that can wait at the enzyme station
 const TYPES := ["carb", "lipid", "amino"]
 const NAMES := {"carb": "Sugar", "lipid": "Lipid", "amino": "Amino acid"}
 
 var stock = {"carb": 0, "lipid": 0, "amino": 0, "atp": 0}
+var carb_cap := 20
+var enzymes := 1
+var station_queue := 0
 var channel_count = {"carb": 0, "lipid": 0, "amino": 0}
 var channel_list: Array = []   # each entry: {"type", "frac", "timer"}
 var unlocked: Dictionary = {}
@@ -19,7 +26,17 @@ var unlocked: Dictionary = {}
 var mitochondria := 0
 var mito_timer := 0.0
 
-var intake_mult := 1.0
+var engulf_mult := 1.0
+var auto_engulf := false
+
+# Intake is boosted by genes and by the environment the cell is drifting through.
+var gene_mult := 1.0
+var env_mult := 1.0
+var toxin_level := 0.0      # 0 to 1, set by the minimap
+var intake_mult: float:
+	get:
+		return gene_mult * env_mult
+
 var weights = {"carb": 1.0, "lipid": 1.0, "amino": 1.0}
 var channel_discount := 0.0
 
@@ -38,6 +55,14 @@ const GENES = {
 		"cost": {"amino": 10, "lipid": 6, "atp": 8}, "needs": ["glucose", "permease"], "pos": Vector2(2, 1)},
 	"duplication": {"name": "Gene duplication", "effect": "+50% intake",
 		"cost": {"amino": 15, "lipid": 10, "atp": 20}, "needs": ["permease", "scavenge"], "pos": Vector2(2, 2)},
+	"pseudopods": {"name": "Pseudopods", "effect": "Click reach 2.5x",
+		"cost": {"amino": 3}, "needs": [], "pos": Vector2(0, 3)},
+	"phagocytosis": {"name": "Phagocytosis", "effect": "Auto-engulfs nearby molecules",
+		"cost": {"amino": 8, "lipid": 5}, "needs": ["pseudopods"], "pos": Vector2(1, 3)},
+	"synthase": {"name": "Glycogen synthase", "effect": "+1 enzyme: stores carbs faster",
+		"cost": {"amino": 6, "lipid": 3}, "needs": [], "pos": Vector2(2, 3)},
+	"branching": {"name": "Branching enzyme", "effect": "Carb storage +20",
+		"cost": {"amino": 6, "lipid": 3}, "needs": ["synthase"], "pos": Vector2(3, 3)},
 }
 
 func _process(delta: float) -> void:
@@ -49,13 +74,22 @@ func _process(delta: float) -> void:
 		mito_timer -= interval
 		stock.carb -= 1
 		stock.atp += ATP_PER_CARB
+		converted.emit()
 		changed.emit()
 	if stock.carb <= CARB_RESERVE:
 		mito_timer = 0.0
 
-func add(type: String, amount: int = 1) -> void:
+func engulf_radius() -> float:
+	return BASE_ENGULF * engulf_mult
+
+# Returns false if the stockpile for this type is full and the molecule is lost.
+func add(type: String, amount: int = 1) -> bool:
+	if type == "carb" and stock.carb >= carb_cap:
+		Sfx.play("overflow", 1.0, 0.15)
+		return false
 	stock[type] += amount
 	changed.emit()
+	return true
 
 func can_afford(cost: Dictionary) -> bool:
 	for k in cost:
@@ -76,13 +110,17 @@ func unlock(id: String) -> void:
 		stock[k] -= GENES[id].cost[k]
 	unlocked[id] = true
 	match id:
-		"transporters": intake_mult *= 1.25
+		"transporters": gene_mult *= 1.25
 		"glucose": weights.carb *= 2.0
 		"permease": weights.amino *= 2.0
 		"scavenge": weights.lipid *= 2.0
 		"mitochondrion": mitochondria = 1
 		"efficient": channel_discount = 0.3
-		"duplication": intake_mult *= 1.5
+		"duplication": gene_mult *= 1.5
+		"pseudopods": engulf_mult = 2.5
+		"phagocytosis": auto_engulf = true
+		"synthase": enzymes += 1
+		"branching": carb_cap += 20
 	changed.emit()
 
 func mito_cost() -> Dictionary:

@@ -1,17 +1,23 @@
 extends Node2D
 
-
 var t := 0.0
 
 func _process(delta: float) -> void:
 	t += delta
 	queue_redraw()
 
+func base_center(n: int) -> Vector2:
+	var angle = n * 2.39996   # golden angle, so they spread out evenly
+	var dist = minf(120.0 + 22.0 * sqrt(float(n)), 150.0)
+	return Vector2(cos(angle), sin(angle)) * dist
+
+func mito_global(n: int) -> Vector2:
+	return global_position + base_center(n)
+
 func _draw() -> void:
 	for n in Game.mitochondria:
-		var angle = n * 2.39996   # golden angle, so they spread out evenly
-		var dist = minf(120.0 + 22.0 * sqrt(float(n)), 190.0)
-		var center = Vector2(cos(angle), sin(angle)) * dist
+		var angle = n * 2.39996
+		var center = base_center(n)
 		center += Vector2(sin(t * 0.7 + n * 1.7), cos(t * 0.6 + n * 2.3)) * 4.0
 		var rot = angle + PI / 2.0 + sin(t * 0.4 + n) * 0.3
 		draw_mitochondrion(center, rot)
