@@ -1,13 +1,23 @@
 extends Node
 
 signal changed
+signal channels_changed
 
-const BASE_INTAKE := 0.5
-const PER_CHANNEL := 0.5
+const BASE_LEAK := 0.2      # molecules/sec of each type leaking through the plain membrane
+const PER_CHANNEL := 0.5    # molecules/sec added by each channel of that type
+const CONVERT_RATE := 0.5   # carbs/sec converted by each mitochondrion
+const ATP_PER_CARB := 3
+const CARB_RESERVE := 5     # mitochondria leave this many carbs for gene costs
+const TYPES := ["carb", "lipid", "amino"]
+const NAMES := {"carb": "Sugar", "lipid": "Lipid", "amino": "Amino acid"}
 
-var stock = {"carb": 0, "lipid": 0, "amino": 0}
-var channels := 0
+var stock = {"carb": 0, "lipid": 0, "amino": 0, "atp": 0}
+var channel_count = {"carb": 0, "lipid": 0, "amino": 0}
+var channel_list: Array = []   # each entry: {"type", "frac", "timer"}
 var unlocked: Dictionary = {}
+
+var mitochondria := 0
+var mito_timer := 0.0
 
 var intake_mult := 1.0
 var weights = {"carb": 1.0, "lipid": 1.0, "amino": 1.0}
@@ -22,11 +32,26 @@ const GENES = {
 		"cost": {"amino": 6, "carb": 4}, "needs": ["transporters"], "pos": Vector2(1, 1)},
 	"scavenge": {"name": "Lipid scavenging", "effect": "Lipids arrive 2x as often",
 		"cost": {"amino": 6, "carb": 4}, "needs": ["transporters"], "pos": Vector2(1, 2)},
+	"mitochondrion": {"name": "Mitochondrion", "effect": "Converts carbs to ATP",
+		"cost": {"amino": 8, "lipid": 5}, "needs": ["glucose"], "pos": Vector2(2, 0)},
 	"efficient": {"name": "Efficient channels", "effect": "Channels cost 30% less",
-		"cost": {"amino": 10, "lipid": 6}, "needs": ["glucose", "permease"], "pos": Vector2(2, 0.5)},
+		"cost": {"amino": 10, "lipid": 6, "atp": 8}, "needs": ["glucose", "permease"], "pos": Vector2(2, 1)},
 	"duplication": {"name": "Gene duplication", "effect": "+50% intake",
-		"cost": {"amino": 15, "lipid": 10, "carb": 10}, "needs": ["permease", "scavenge"], "pos": Vector2(2, 1.5)},
+		"cost": {"amino": 15, "lipid": 10, "atp": 20}, "needs": ["permease", "scavenge"], "pos": Vector2(2, 2)},
 }
+
+func _process(delta: float) -> void:
+	if mitochondria <= 0:
+		return
+	mito_timer += delta
+	var interval = 1.0 / (CONVERT_RATE * mitochondria)
+	while mito_timer >= interval and stock.carb > CARB_RESERVE:
+		mito_timer -= interval
+		stock.carb -= 1
+		stock.atp += ATP_PER_CARB
+		changed.emit()
+	if stock.carb <= CARB_RESERVE:
+		mito_timer = 0.0
 
 func add(type: String, amount: int = 1) -> void:
 	stock[type] += amount
@@ -55,22 +80,50 @@ func unlock(id: String) -> void:
 		"glucose": weights.carb *= 2.0
 		"permease": weights.amino *= 2.0
 		"scavenge": weights.lipid *= 2.0
+		"mitochondrion": mitochondria = 1
 		"efficient": channel_discount = 0.3
 		"duplication": intake_mult *= 1.5
 	changed.emit()
 
-func channel_cost() -> int:
-	return int(round((3 + channels * 2) * (1.0 - channel_discount)))
+func mito_cost() -> Dictionary:
+	return {"amino": 6, "lipid": 4 + 3 * (mitochondria - 1)}
+
+func build_mitochondrion() -> void:
+	if mitochondria < 1:
+		return
+	var cost = mito_cost()
+	if not can_afford(cost):
+		return
+	for k in cost:
+		stock[k] -= cost[k]
+	mitochondria += 1
+	changed.emit()
+
+func total_channels() -> int:
+	return channel_list.size()
+
+func channel_cost(type: String) -> int:
+	return int(round((3 + channel_count[type] * 2) * (1.0 - channel_discount)))
+
+func type_rate(type: String) -> float:
+	return (BASE_LEAK + channel_count[type] * PER_CHANNEL) * intake_mult * weights[type]
 
 func intake_rate() -> float:
-	return (BASE_INTAKE + channels * PER_CHANNEL) * intake_mult
+	var total := 0.0
+	for k in TYPES:
+		total += type_rate(k)
+	return total
 
-func build_channel() -> void:
-	var c = channel_cost()
-	if stock.amino >= c:
-		stock.amino -= c
-		channels += 1
-		changed.emit()
+func build_channel(type: String) -> void:
+	var c = channel_cost(type)
+	if stock.amino < c:
+		return
+	stock.amino -= c
+	var n = channel_list.size()
+	channel_list.append({"type": type, "frac": fmod(0.05 + n * 0.618034, 1.0), "timer": 0.0})
+	channel_count[type] += 1
+	channels_changed.emit()
+	changed.emit()
 
 func random_type() -> String:
 	var total = 0.0
