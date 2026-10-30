@@ -51,13 +51,7 @@ func draw_enzyme(c: Vector2, busy: bool) -> void:
 	draw_colored_polygon(notch, Color(0.08, 0.1, 0.14))
 
 func _draw() -> void:
-	# highways: each sugar channel to the enzyme station, then a belt on to the stockpile
-	if membrane != null:
-		for ch in Game.channel_list:
-			if ch.type == "carb":
-				var bp = membrane.border_point(ch.frac)
-				var pore: Vector2 = bp[0] - bp[1] * 28.0
-				draw_highway(to_local(pore), station_offset, Color(0.6, 0.85, 1.0))
+	# a belt from the enzyme station to the stockpile (routes into the station are drawn by Routes)
 	draw_highway(station_offset, Vector2.ZERO, Color(0.95, 0.8, 0.5))
 
 	# the stockpile

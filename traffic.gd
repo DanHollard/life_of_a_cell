@@ -3,8 +3,8 @@ extends Node2D
 @export var margin: float = 60.0
 @export var speed: float = 50.0
 @export var waste_rate: float = 1.0
-@export var drift_rate: float = 1.0     # floating molecules appearing per second
-@export var max_drifters: int = 14
+@export var drift_rate: float = 1.5     # floating molecules appearing per second
+@export var max_drifters: int = 22
 @export var drift_life: float = 14.0
 @export var out_color: Color = Color(0.9, 0.5, 0.4)
 
@@ -355,6 +355,8 @@ func spawn_leak(type: String) -> void:
 	add_particle(random_edge_point(screen), [inner_target(type)], true, type)
 
 func spawn_from_channel(ch: Dictionary) -> void:
+	if ch.type == "carb":
+		return   # sugar channels are handled by the Routes node
 	if membrane == null:
 		spawn_leak(ch.type)
 		return
@@ -387,14 +389,25 @@ func add_particle(start: Vector2, waypoints: Array, inbound: bool, type: String,
 	})
 	next_id += 1
 
+# A point in the water just outside the cell, where molecules and waste come and go.
 func random_edge_point(screen: Vector2) -> Vector2:
+	if membrane != null:
+		var bp = membrane.border_point(randf())
+		return bp[0] + bp[1] * randf_range(70.0, 150.0)
 	match randi() % 4:
 		0: return Vector2(randf() * screen.x, 0)
 		1: return Vector2(randf() * screen.x, screen.y)
 		2: return Vector2(0, randf() * screen.y)
 		_: return Vector2(screen.x, randf() * screen.y)
 
+# A point well inside the cell.
 func random_inner_point(screen: Vector2) -> Vector2:
+	if membrane != null:
+		var q = membrane.params()
+		for i in 30:
+			var p = Vector2(randf_range(q.x0, q.x1), randf_range(q.y0, q.y1))
+			if border_dist(p, q) < -60.0:
+				return p
 	return Vector2(
 		randf_range(margin * 2.0, screen.x - margin * 2.0),
 		randf_range(margin * 2.0, screen.y - margin * 2.0))

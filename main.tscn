@@ -3,12 +3,15 @@
 [ext_resource type="Script" uid="uid://dhyvy1ocifdqn" path="res://main.gd" id="1_lquwl"]
 [ext_resource type="Script" uid="uid://bhkeda50qpv53" path="res://membrane.gd" id="2_h2yge"]
 [ext_resource type="Script" uid="uid://c1sn2thp6usa5" path="res://stockpile.gd" id="3_7mycd"]
+[ext_resource type="Script" uid="uid://dgu2qieoeur4n" path="res://backdrop.gd" id="3_dg77c"]
 [ext_resource type="Script" uid="uid://bnnmefklvhfa6" path="res://traffic.gd" id="3_h2yge"]
 [ext_resource type="Script" uid="uid://dp2mr0g35fdgs" path="res://nucleus.gd" id="4_1bvp3"]
 [ext_resource type="Script" uid="uid://ba7dt5ipvxpcs" path="res://organelles.gd" id="4_lquwl"]
 [ext_resource type="Script" uid="uid://camiciohbwhu" path="res://defense.gd" id="7_5vw27"]
 [ext_resource type="Script" uid="uid://d2qc5hkttoadr" path="res://minimap.gd" id="7_272bh"]
+[ext_resource type="Script" uid="uid://dwcflt7q0cten" path="res://routes.gd" id="7_ycdy4"]
 [ext_resource type="Script" uid="uid://cdhcao5ipagiw" path="res://mutations.gd" id="8_4c57u"]
+[ext_resource type="Script" uid="uid://wmba6jy2kyu0" path="res://viruses.gd" id="8_efxa6"]
 [ext_resource type="Script" uid="uid://cqprn1vx526cp" path="res://division.gd" id="9_kek77"]
 
 [node name="Main" type="Node2D" unique_id=956508114]
@@ -16,8 +19,9 @@ script = ExtResource("1_lquwl")
 
 [node name="Membrane" type="Node2D" parent="." unique_id=619354524]
 script = ExtResource("2_h2yge")
-margin = 70.0
-margin_top = 150.0
+
+[node name="Backdrop" type="Node2D" parent="." unique_id=748204616]
+script = ExtResource("3_dg77c")
 
 [node name="Stockpile" type="Node2D" parent="." unique_id=462273574]
 script = ExtResource("3_7mycd")
@@ -30,17 +34,23 @@ script = ExtResource("4_1bvp3")
 position = Vector2(576, 370)
 script = ExtResource("4_lquwl")
 
+[node name="Routes" type="Node2D" parent="." unique_id=1796417453]
+script = ExtResource("7_ycdy4")
+
 [node name="Traffic" type="Node2D" parent="." unique_id=1268995546]
 script = ExtResource("3_h2yge")
 
 [node name="Defense" type="Node2D" parent="." unique_id=1433807946]
 script = ExtResource("7_5vw27")
 
-[node name="Mutations" type="Node2D" parent="." unique_id=1052735527]
-script = ExtResource("8_4c57u")
+[node name="Viruses" type="Node2D" parent="." unique_id=670271046]
+script = ExtResource("8_efxa6")
 
 [node name="Division" type="Node2D" parent="." unique_id=2087400456]
 script = ExtResource("9_kek77")
+
+[node name="Mutations" type="Node2D" parent="." unique_id=1052735527]
+script = ExtResource("8_4c57u")
 
 [node name="Minimap" type="Node2D" parent="." unique_id=1729328031]
 script = ExtResource("7_272bh")

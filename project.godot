@@ -22,8 +22,10 @@ Sfx="*uid://d3x07h1qygvb5"
 
 [display]
 
+window/size/viewport_width=1360
+window/size/viewport_height=765
+window/size/mode=2
 window/stretch/mode="canvas_items"
-window/stretch/aspect="expand"
 
 [physics]
 

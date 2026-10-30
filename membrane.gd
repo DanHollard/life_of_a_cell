@@ -1,16 +1,18 @@
 extends Node2D
 
-@export var margin: float = 40.0
-@export var margin_top: float = 130.0
+@export var cell_size := Vector2(1012, 428)    # width and height of the cell
+@export var cell_offset := Vector2(0, 30)      # shift from the middle of the screen
 @export var corner_radius: float = 120.0
-@export var spacing: float = 13.0
-@export var head_radius: float = 4.5
-@export var tail_length: float = 12.0
-@export var tail_gap: float = 2.0
-@export var tail_width: float = 1.5
-@export var hole_radius: float = 14.0
+@export var spacing: float = 10.0
+@export var head_radius: float = 3.5
+@export var tail_length: float = 7.0
+@export var tail_gap: float = 1.6
+@export var tail_width: float = 1.2
+@export var hole_radius: float = 11.0
 @export var head_color: Color = Color(0.95, 0.75, 0.3)
 @export var tail_color: Color = Color(0.9, 0.9, 0.7)
+@export var water_color: Color = Color(0.03, 0.06, 0.11)
+@export var cytoplasm_color: Color = Color(0.09, 0.24, 0.28, 0.45)
 
 const CHANNEL_COLORS = {
 	"carb": Color(0.5, 0.8, 1.0),
@@ -20,13 +22,32 @@ const CHANNEL_COLORS = {
 
 func _ready() -> void:
 	Game.channels_changed.connect(queue_redraw)
+	var screen = get_viewport_rect().size
+
+	# the background fills the whole screen
+	var bg = get_parent().get_node_or_null("ColorRect")
+	if bg != null:
+		bg.position = Vector2.ZERO
+		bg.size = screen
+		bg.color = water_color
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# the nucleus and its organelles sit in the middle of the cell
+	var c = cell_center()
+	for node_name in ["Nucleus", "Organelles"]:
+		var n = get_parent().get_node_or_null(node_name)
+		if n != null:
+			n.position = c
+
+func cell_center() -> Vector2:
+	return get_viewport_rect().size * 0.5 + cell_offset
 
 func params() -> Dictionary:
-	var screen = get_viewport_rect().size
-	var x0 = margin
-	var y0 = margin_top
-	var x1 = screen.x - margin
-	var y1 = screen.y - margin
+	var center = cell_center()
+	var x0 = center.x - cell_size.x * 0.5
+	var y0 = center.y - cell_size.y * 0.5
+	var x1 = center.x + cell_size.x * 0.5
+	var y1 = center.y + cell_size.y * 0.5
 	var r = corner_radius
 	var sw = (x1 - x0) - 2.0 * r
 	var sh = (y1 - y0) - 2.0 * r
@@ -42,6 +63,12 @@ func border_point(frac: float) -> Array:
 func _draw() -> void:
 	var q = params()
 	var d = head_radius + tail_length
+
+	# a faint tint inside, so the cell reads as one solid thing
+	var fill := PackedVector2Array()
+	for i in 160:
+		fill.append(border_point(float(i) / 160.0)[0])
+	draw_colored_polygon(fill, cytoplasm_color)
 
 	var holes: Array = []
 	for ch in Game.channel_list:
@@ -107,9 +134,9 @@ func draw_lipid(head_pos: Vector2, tail_dir: Vector2) -> void:
 # A transmembrane protein: two blocks with a dark pore between them.
 func draw_channel(pos: Vector2, normal: Vector2, color: Color) -> void:
 	var tangent = normal.orthogonal()
-	var half_len = head_radius + tail_length + head_radius + 2.0
-	var half_w = 11.0
-	var pore = 3.0
+	var half_len = head_radius + tail_length + head_radius + 1.5
+	var half_w = 8.0
+	var pore = 2.2
 
 	var left := PackedVector2Array([
 		pos - tangent * half_w - normal * half_len,
@@ -135,4 +162,4 @@ func draw_channel(pos: Vector2, normal: Vector2, color: Color) -> void:
 
 	for sx in [-1.0, 1.0]:
 		for sy in [-1.0, 1.0]:
-			draw_circle(pos + tangent * sx * 7.0 + normal * sy * half_len, 5.0, color)
+			draw_circle(pos + tangent * sx * 5.0 + normal * sy * half_len, 4.0, color)
